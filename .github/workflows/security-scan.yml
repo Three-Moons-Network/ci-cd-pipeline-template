@@ -1,0 +1,70 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Monday at 2 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit runtime dependencies
+        run: pip-audit --desc --requirement requirements.txt
+
+      - name: Audit dev dependencies
+        run: pip-audit --desc --requirement requirements-dev.txt
+
+  terraform-security:
+    name: Terraform Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Checkov scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: terraform
+          framework: terraform
+          quiet: false
+          soft_fail: false
+
+  lint-security:
+    name: Code Security Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run security linter
+        run: bandit -r src/ --confidence-level medium
+
+  report:
+    name: Report Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-audit, terraform-security]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "Security scan completed"
+          echo "Status: $(if [ "${{ needs.dependency-audit.result }}" = "success" ] && [ "${{ needs.terraform-security.result }}" = "success" ]; then echo "✓ Passed"; else echo "✗ Failed"; fi)"

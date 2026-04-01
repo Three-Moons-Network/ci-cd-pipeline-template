@@ -1,0 +1,107 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'terraform/**'
+      - 'requirements.txt'
+      - '.github/workflows/deploy-staging.yml'
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: "1.5"
+
+jobs:
+  build:
+    name: Build Lambda Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build deployment package
+        run: |
+          mkdir -p dist/package
+          pip install -r requirements.txt -t dist/package/ --quiet
+          cp src/handler.py dist/package/
+          cd dist/package && zip -r ../lambda.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: dist/lambda.zip
+          retention-days: 7
+
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download lambda artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
+          path: dist/
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -upgrade
+
+      - name: Terraform Plan (Staging)
+        working-directory: terraform
+        run: |
+          terraform plan \
+            -var="environment=staging" \
+            -var="anthropic_api_key=${{ secrets.ANTHROPIC_API_KEY }}" \
+            -out=tfplan
+
+      - name: Terraform Apply (Staging)
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get endpoint URL
+        id: endpoint
+        working-directory: terraform
+        run: echo "url=$(terraform output -raw invoke_url)" >> $GITHUB_OUTPUT
+
+      - name: Run smoke tests
+        run: |
+          ./scripts/smoke-test.sh "${{ steps.endpoint.outputs.url }}"
+
+  notify:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always()
+    steps:
+      - name: Status
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "✓ Staging deployment successful"
+          else
+            echo "✗ Staging deployment failed"
+            exit 1
+          fi
