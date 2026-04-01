@@ -37,9 +37,11 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ProcessRequest:
     """Validated inbound request."""
+
     task_type: str
     payload: dict[str, Any]
 
@@ -47,6 +49,7 @@ class ProcessRequest:
 @dataclass
 class ProcessResponse:
     """Structured outbound response."""
+
     success: bool
     result: str | dict[str, Any]
     environment: str
@@ -58,6 +61,7 @@ class ProcessResponse:
 # ---------------------------------------------------------------------------
 # Core logic
 # ---------------------------------------------------------------------------
+
 
 def validate_request(body: dict[str, Any]) -> ProcessRequest:
     """Parse and validate the incoming request body."""
@@ -134,8 +138,7 @@ def process_request(request: ProcessRequest) -> ProcessResponse:
 
         else:
             raise ValueError(
-                f"Unknown task_type '{request.task_type}'. "
-                "Supported: echo, analyze"
+                f"Unknown task_type '{request.task_type}'. Supported: echo, analyze"
             )
 
     except Exception as exc:
@@ -154,6 +157,7 @@ def process_request(request: ProcessRequest) -> ProcessResponse:
 # ---------------------------------------------------------------------------
 # Lambda entry point
 # ---------------------------------------------------------------------------
+
 
 def lambda_handler(event: dict, context: Any) -> dict:
     """

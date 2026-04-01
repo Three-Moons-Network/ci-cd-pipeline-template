@@ -23,20 +23,25 @@ from src.handler import (
 # validate_request
 # ---------------------------------------------------------------------------
 
+
 class TestValidateRequest:
     def test_valid_echo_task(self):
-        req = validate_request({
-            "task_type": "echo",
-            "payload": {"message": "hello"},
-        })
+        req = validate_request(
+            {
+                "task_type": "echo",
+                "payload": {"message": "hello"},
+            }
+        )
         assert req.task_type == "echo"
         assert req.payload == {"message": "hello"}
 
     def test_valid_analyze_task(self):
-        req = validate_request({
-            "task_type": "analyze",
-            "payload": {"data": [1, 2, 3]},
-        })
+        req = validate_request(
+            {
+                "task_type": "analyze",
+                "payload": {"data": [1, 2, 3]},
+            }
+        )
         assert req.task_type == "analyze"
 
     def test_missing_task_type_raises(self):
@@ -52,16 +57,19 @@ class TestValidateRequest:
             validate_request({"task_type": "echo", "payload": "not a dict"})
 
     def test_task_type_is_lowercased(self):
-        req = validate_request({
-            "task_type": "ECHO",
-            "payload": {},
-        })
+        req = validate_request(
+            {
+                "task_type": "ECHO",
+                "payload": {},
+            }
+        )
         assert req.task_type == "echo"
 
 
 # ---------------------------------------------------------------------------
 # process_request
 # ---------------------------------------------------------------------------
+
 
 class TestProcessRequest:
     def test_echo_task_returns_success(self):
@@ -126,13 +134,16 @@ class TestProcessRequest:
 # lambda_handler
 # ---------------------------------------------------------------------------
 
+
 class TestLambdaHandler:
     def test_valid_echo_request_returns_200(self):
         event = {
-            "body": json.dumps({
-                "task_type": "echo",
-                "payload": {"msg": "test"},
-            }),
+            "body": json.dumps(
+                {
+                    "task_type": "echo",
+                    "payload": {"msg": "test"},
+                }
+            ),
             "path": "/process",
             "httpMethod": "POST",
         }
@@ -154,10 +165,12 @@ class TestLambdaHandler:
 
     def test_missing_task_type_returns_400(self):
         event = {
-            "body": json.dumps({
-                "task_type": "",
-                "payload": {},
-            }),
+            "body": json.dumps(
+                {
+                    "task_type": "",
+                    "payload": {},
+                }
+            ),
         }
 
         result = lambda_handler(event, None)
@@ -165,10 +178,12 @@ class TestLambdaHandler:
 
     def test_cors_headers_present_in_response(self):
         event = {
-            "body": json.dumps({
-                "task_type": "echo",
-                "payload": {},
-            }),
+            "body": json.dumps(
+                {
+                    "task_type": "echo",
+                    "payload": {},
+                }
+            ),
         }
 
         result = lambda_handler(event, None)
@@ -187,10 +202,12 @@ class TestLambdaHandler:
         mock_client_cls.return_value = mock_client
 
         event = {
-            "body": json.dumps({
-                "task_type": "analyze",
-                "payload": {"data": "test"},
-            }),
+            "body": json.dumps(
+                {
+                    "task_type": "analyze",
+                    "payload": {"data": "test"},
+                }
+            ),
         }
 
         result = lambda_handler(event, None)

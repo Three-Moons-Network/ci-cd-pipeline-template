@@ -211,11 +211,11 @@ resource "aws_lambda_function" "handler" {
 
   environment {
     variables = {
-      ENVIRONMENT        = var.environment
-      ANTHROPIC_MODEL    = var.anthropic_model
-      MAX_TOKENS         = tostring(var.max_tokens)
-      LOG_LEVEL          = var.environment == "prod" ? "WARNING" : "INFO"
-      ANTHROPIC_API_KEY  = var.anthropic_api_key
+      ENVIRONMENT       = var.environment
+      ANTHROPIC_MODEL   = var.anthropic_model
+      MAX_TOKENS        = tostring(var.max_tokens)
+      LOG_LEVEL         = var.environment == "prod" ? "WARNING" : "INFO"
+      ANTHROPIC_API_KEY = var.anthropic_api_key
     }
   }
 
@@ -227,8 +227,8 @@ resource "aws_lambda_function" "handler" {
 
 # Lambda version for traffic shifting and rollback capability
 resource "aws_lambda_function_version" "handler" {
-  function_name       = aws_lambda_function.handler.function_name
-  description         = "Version ${aws_lambda_function.handler.version}"
+  function_name = aws_lambda_function.handler.function_name
+  description   = "Version ${aws_lambda_function.handler.version}"
   lifecycle {
     create_before_destroy = true
   }
@@ -236,10 +236,10 @@ resource "aws_lambda_function_version" "handler" {
 
 # Lambda alias for environment-specific routing
 resource "aws_lambda_alias" "live" {
-  function_name       = aws_lambda_function.handler.function_name
-  name                = "live"
-  description         = "Live traffic alias for ${var.environment}"
-  function_version    = aws_lambda_function_version.handler.version
+  function_name    = aws_lambda_function.handler.function_name
+  name             = "live"
+  description      = "Live traffic alias for ${var.environment}"
+  function_version = aws_lambda_function_version.handler.version
 }
 
 # ---------------------------------------------------------------------------
@@ -339,7 +339,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
   extended_statistic  = "p99"
   period              = 300
   evaluation_periods  = 2
-  threshold           = var.lambda_timeout * 1000 * 0.8  # 80% of timeout
+  threshold           = var.lambda_timeout * 1000 * 0.8 # 80% of timeout
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
 
